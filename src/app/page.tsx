@@ -10,26 +10,32 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const supabase = createClient();
-    
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
+    try {
+      const supabase = createClient();
+      
+      const checkSession = async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          setUser(session?.user ? { id: session.user.id, email: session.user.email || '' } : null);
+        } catch {
+          setUser(null);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      checkSession();
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         setUser(session?.user ? { id: session.user.id, email: session.user.email || '' } : null);
-      } catch {
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
+      });
 
-    checkSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ? { id: session.user.id, email: session.user.email || '' } : null);
-    });
-
-    return () => subscription.unsubscribe();
+      return () => subscription.unsubscribe();
+    } catch (error) {
+      console.error('Supabase initialization error:', error);
+      setLoading(false);
+      return;
+    }
   }, []);
 
   if (loading) {
