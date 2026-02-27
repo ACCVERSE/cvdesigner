@@ -3,15 +3,15 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CVDesigner } from '@/components/cv-designer/CVDesigner';
-import { AuthForm } from '@/components/cv-designer/AuthForm';
 import { Loader2 } from 'lucide-react';
 
 export default function Home() {
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   useEffect(() => {
+    const supabase = createClient();
+    
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -30,7 +30,7 @@ export default function Home() {
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase.auth]);
+  }, []);
 
   if (loading) {
     return (
@@ -43,6 +43,5 @@ export default function Home() {
     );
   }
 
-  // Show CV Designer (with optional account for saving)
   return <CVDesigner user={user} />;
 }
