@@ -1,63 +1,48 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { AuthForm } from '@/components/auth/AuthForm'
-import { Dashboard } from '@/components/Dashboard'
-import { Loader2 } from 'lucide-react'
-
-// Force dynamic rendering
-export const dynamic = 'force-dynamic'
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { CVDesigner } from '@/components/cv-designer/CVDesigner';
+import { AuthForm } from '@/components/cv-designer/AuthForm';
+import { Loader2 } from 'lucide-react';
 
 export default function Home() {
-  const [user, setUser] = useState<{
-    id: string
-    email: string
-    created_at: string
-  } | null>(null)
-  const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
 
   useEffect(() => {
-    // Check active session
     const checkSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        setUser(session?.user ?? null)
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user ? { id: session.user.id, email: session.user.email || '' } : null);
       } catch {
-        setUser(null)
+        setUser(null);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    checkSession()
+    checkSession();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
+      setUser(session?.user ? { id: session.user.id, email: session.user.email || '' } : null);
+    });
 
-    return () => subscription.unsubscribe()
-  }, [supabase.auth])
+    return () => subscription.unsubscribe();
+  }, [supabase.auth]);
 
-  // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-amber-500 mx-auto" />
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
           <p className="mt-4 text-muted-foreground">Chargement...</p>
         </div>
       </div>
-    )
+    );
   }
 
-  // Not authenticated - show login form
-  if (!user) {
-    return <AuthForm />
-  }
-
-  // Authenticated - show dashboard with logout
-  return <Dashboard user={user} />
+  // Show CV Designer (with optional account for saving)
+  return <CVDesigner user={user} />;
 }

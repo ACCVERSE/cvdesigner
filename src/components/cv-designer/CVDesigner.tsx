@@ -12,18 +12,27 @@ import { ObjectiveSection } from './ObjectiveSection';
 import { ReferencesSection } from './ReferencesSection';
 import { StyleOptions } from './StyleOptions';
 import { CVPreview } from './CVPreview';
+import { AuthForm } from './AuthForm';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, Download, RotateCcw, Eye, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { FileText, Download, RotateCcw, ChevronLeft, ChevronRight, Loader2, LogIn, LogOut, User, Save } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { createClient } from '@/lib/supabase/client';
 
-export function CVDesigner() {
+interface CVDesignerProps {
+  user?: { id: string; email: string } | null;
+}
+
+export function CVDesigner({ user }: CVDesignerProps) {
   const { resetCV } = useCVStore();
   const [showPreview, setShowPreview] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const printRef = useRef<HTMLDivElement | null>(null);
+  const supabase = createClient();
 
   const handleExportPDF = async () => {
     setIsExporting(true);
@@ -62,6 +71,12 @@ export function CVDesigner() {
     setShowResetDialog(false);
   };
 
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    await supabase.auth.signOut();
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
       <header className="bg-white dark:bg-slate-900 border-b shadow-sm sticky top-0 z-50">
@@ -77,6 +92,23 @@ export function CVDesigner() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {/* User info */}
+              {user ? (
+                <div className="flex items-center gap-2">
+                  <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-muted rounded-lg">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{user.email}</span>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={handleLogout} disabled={isLoggingOut}>
+                    {isLoggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" size="sm" onClick={() => setShowAuthDialog(true)}>
+                  <LogIn className="h-4 w-4 mr-1" /> Se connecter
+                </Button>
+              )}
+
               <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)} className="hidden md:flex">
                 {showPreview ? <><ChevronRight className="h-4 w-4 mr-1" /> Masquer</> : <><ChevronLeft className="h-4 w-4 mr-1" /> Aperçu</>}
               </Button>
@@ -136,6 +168,13 @@ export function CVDesigner() {
           )}
         </div>
       </main>
+
+      {/* Auth Dialog */}
+      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <DialogContent className="p-0 border-0 bg-transparent shadow-none max-w-md">
+          <AuthForm onSuccess={() => setShowAuthDialog(false)} onClose={() => setShowAuthDialog(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
